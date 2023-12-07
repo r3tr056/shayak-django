@@ -1,32 +1,17 @@
+import zlib
+
 from django.db import models
-from django.utils.html import escape
+from django.core.files.base import ContentFile
 
-"""
-Rollback Concept:
-My name is Aprit
-
-deltas = [
-    {
-        ops: [
-            { insert: 'My'},
-            { insert: ' name' },
-            { insert: ' is'},
-            { insert: ' Ankur'},
-        ]
-    },
-    {
-        ops: [
-            { delete: 'Ankur'},
-            { insert: 'Arpit' },
-        ]
-    },
-]
-"""
+from users.models import User
 class Document(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='document_user')
     title = models.CharField(max_length=255)
-    content = models.TextField()
-    compressed_content = models.BinaryField(blank=True)
-    is_draft = models.BooleanField(default=True)
+    file = models.FileField(upload_to='documents/')
+    compressed_content = models.FileField(upload_to='compressed_docs/')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deltas = models.JSONField(default=list)
 
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -35,34 +20,31 @@ class Document(models.Model):
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
 
-    # def rollback_changes(self):
-    #     if self.deltas:
-    #         last_delta = self.deltas.pop()
-    #         # Apply the reverse of the last delta to rollback changes
-    #         reversed_delta = {'ops': []}
-    #         for op in reversed(last_delta['ops']):
-    #             if 'insert' in op:
-    #                 reversed_delta['ops'].append({'delete': op['insert']})
-    #             elif 'delete' in op:
-    #                 reversed_delta['ops'].append({'insert': op['delete']})
-    #             else:
-    #                 reversed_delta['ops'].append(op)
-
-    #         self.apply_delta(reversed_delta)
-    #         self.save()
-
-    #         return True
-    #     else:
-    #         return False
+    def compress_content(self):
+        """ Compress the content of the document and saves it """
+        if not self.file:
+            raise ValueError("Cannot compress content. File is missing")
         
-    # def apply_delta(self, delta):
-    #     for op in delta.get('ops', []):
-    #         if 'insert' in op:
-    #             self.content = self.content[:op.get('retain', 0)] + op['insert'] + self.content[op.get('retain', 0):]
-    #         elif 'delete' in op:
-    #             start_index = op.get('retain', 0)
-    #             end_index = start_index + op['delete']
-    #             self.content = self.content[:start_index] + self.content[end_index:]
-                
-    #     # Escape all HTML and XSS attacks
-    #     self.content = escape(self.content)
+        with self.file.open(mode='rb') as file_content:
+            uncomp_data = file_content.read()
+
+        comp_data = zlib.compress(uncomp_data)
+        
+        compressed_file_content = ContentFile(comp_data)
+        self.compress_content.save(f'compressed_{self.title}.gz', compressed_file_content, save=True)
+
+    def decompress_content(self):
+        """ Decompress the content of the document in the`compressed_content`"""
+        if not self.compressed_content:
+            raise ValueError("Cannot decompress content. Compressed content is missing.")
+        
+        with self.compressed_content.open(mode='rb') as compressd_file:
+            compressed_data = compressd_file.read()
+
+        uncompressed_data = zlib.decompress(compressed_data)
+        return uncompressed_data
+
+class AIIntermediateDoc(models.Model):
+    simple_id = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
