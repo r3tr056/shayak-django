@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Expert
+
+from .models import Expert, Message
 
 class ExpertSerializer(serializers.ModelSerializer):
     avg_response_time = serializers.SerializerMethodField()
@@ -14,3 +15,8 @@ class ExpertSerializer(serializers.ModelSerializer):
 
     def get_avg_user_rating(self, obj):
         return obj.calculate_avg_user_rating()
+
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = '__all__'

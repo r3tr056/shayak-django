@@ -3,8 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .models import Expert
-from .serializers import ExpertSerializer
+from .models import Expert, Message, User
+from django.shortcuts import get_object_or_404
+from .serializers import ExpertSerializer, MessageSerializer
 from .doc_select import select_expert_for_document
 from doc_store.models import Document
 
@@ -54,5 +55,26 @@ class SubmitForExpertReview(APIView):
         except Exception as e:
             return Response({"message":f"Document with id: {doc_id} does not exist"},status = status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-class ExpertComments(APIView):
+class SendMessage(APIView):
+    def post(self, request):
+        sender_id = request.data.get('sender_id')
+        receiver_id = request.data.get('receiver_id')
+        message_content = request.data.get('message')
+
+        sender = get_object_or_404(User, pk=sender_id)
+        receiver = get_object_or_404(User, pk=receiver_id)
+
+        message = Message.objects.create(sender=sender, receiver=receiver, content=message_content)
+        serializer = MessageSerializer(message)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+class GetMessages(APIView):
+    def get(self, request, sender_id, receiver_id):
+        sender = get_object_or_404(User, pk=sender_id)
+        receiver = get_object_or_404(User, pk=receiver_id)
+        
+        messages = Message.objects.filter(sender=sender, receiver=receiver) | Message.objects.filter(sender=receiver, receiver=sender)
+        serializer = MessageSerializer(messages, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
