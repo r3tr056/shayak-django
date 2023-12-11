@@ -32,7 +32,7 @@ class DocumentContentViewSet(viewsets.ModelViewSet):
 class DocumentSearchView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-
+    
     def list(self, request):
         query = request.data.get('query', '')
         documents = DocumentContent.objects.filter(content__icontains=query)
