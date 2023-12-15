@@ -1,6 +1,7 @@
 # Import necessary modules from Django
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from phone_field import PhoneField
 
 # Define a Manager class for handling user creation and management
 class UserManager(BaseUserManager):
@@ -49,11 +50,14 @@ class UserManager(BaseUserManager):
     
 # we define a custom user model that will store the extra data we need
 # for the app
-class User(AbstractBaseUser, PermissionsMixin):
+class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
+    # aadhar = models.ForeignKey(Aadhaar, blank=True, null=True)
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     is_active = models.BooleanField(default=True)
+    date_of_birth = models.DateField()
+    phone_number = PhoneField(blank=True, help_text='User phone number')
     # sets if the user is admin staff
     is_staff = models.BooleanField(default=False)
     # sets if the user is expert
@@ -63,7 +67,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['email','first_name', 'last_name', 'phone_number']
 
     def __str__(self):
         return self.email

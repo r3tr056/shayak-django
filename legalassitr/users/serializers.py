@@ -8,7 +8,7 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'password')
+        fields = ('id', 'email', 'first_name', 'last_name', 'password', 'phone_number')
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -52,7 +52,7 @@ class LoginSerializer(serializers.Serializer):
         # generate jwt token
         refresh = RefreshToken.for_user(user)
         data['access'] = str(refresh.access_token)
-        data['refesh'] = str(refresh)
+        data['refresh'] = str(refresh)
         
         return data
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .order-details {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .order-details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .order-details table,
+        .order-details th,
+        .order-details td {
+            border: 1px solid #ddd;
+        }
+
+        .order-details th,
+        .order-details td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        .total {
+            margin-top: 20px;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Order Confirmation</h1>
+        <p>Dear [Customer],
+
+            Thank you for placing your order with us. Below are the details of your order:
+
+        <div class="order-details">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Product 1</td>
+                        <td>2</td>
+                        <td>$20.00</td>
+                    </tr>
+                    <tr>
+                        <td>Product 2</td>
+                        <td>1</td>
+                        <td>$15.00</td>
+                    </tr>
+                    <!-- Add more rows for additional products -->
+                </tbody>
+            </table>
+
+            <div class="total">
+                <p><strong>Total:</strong> $55.00</p>
+            </div>
+        </div>
+
+        Your order will be processed shortly. We will notify you once it has been shipped.
+
+        </p>
+
+        <p>If you have any questions or concerns, please contact our customer support.</p>
+    </div>
+</body>
+
+</html>
