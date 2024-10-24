@@ -1,72 +1,70 @@
 
-from django.contrib.auth import authenticate
+from django.contrib.auth.tokens import default_token_generator
+from django.conf import settings
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
 
+from .email_utils.email import send_forgot_password_email
 from .models import User
 
-class UserSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'password', 'phone_number')
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ('first_name', 'last_name', 'phone_number', 'date_of_birth', 'email', 'email_verifier', 'phone_verifier')
+        extra_kwargs = {'email': {'read_only': True}}
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'first_name', 'last_name', 'email', 'password', 'phone_number')
+        extra_kwargs = {
+            'password': {'write_only':True}
+        }
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        return user
-    
-    def update(self, instance, validated_data):
-        instance.email = validated_data.get('email', instance.email)
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-
         password = validated_data.get('password', None)
-        if password:
-            instance.set_password(password)
-        instance.save()
+        instance = self.Meta.model.create_user(**validated_data) #doesnt include password
 
+        if password is not None:
+            instance.set_password(password) #hashes password
+        instance.save()
         return instance
     
-class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField()
-
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
-
-        user = authenticate(
-            request=self.context.get('request'),
-            email=email,
-            password=password
-        )
-
-        if not user:
-            raise serializers.ValidationError('Invalid credentials')
-        
-        if user.is_active:
-            data['user'] = user
-        else:
-            raise serializers.ValidationError('User account is not active')
-        
-        # generate jwt token
-        refresh = RefreshToken.for_user(user)
-        data['access'] = str(refresh.access_token)
-        data['refresh'] = str(refresh)
-        
-        return data
-
-class TokenPairSerializer(serializers.Serializer):
-    access = serializers.CharField()
-    refresh = serializers.CharField()
-
-class TokenRefreshSerializer(serializers.Serializer):
-    refresh = serializers.CharField()
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+    
+    def save(self):
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        token = default_token_generator()
+        user.save()
+
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}&email={email}"
+        send_forgot_password_email(email, reset_link=reset_link)
+
 class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
     token = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        try:
+            user = User.objects.get(email=attrs['email'])
+            if not default_token_generator.check_token(user, attrs['token']):
+                raise serializers.ValidationError('Invalid token')
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return attrs
+    
+    def save(self):
+        user = User.objects.get(email=self.validated_data['email'])
+        user.set_password(self.validated_data['new_password'])
+        user.save()
 
